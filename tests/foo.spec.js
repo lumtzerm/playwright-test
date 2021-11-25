@@ -14,50 +14,55 @@ test('basic test', async ({ page }) => {
 
   await page.click('[data-id="departure-date"]');
 
-  await page.click('.CalendarDay__firstDayOfWeek:text-is(" ' + getNextMondayDate(getNextMonday()) + ' ")') ;
+  await page.click('.CalendarDay__firstDayOfWeek:text-is(" ' + getNextMondayDayDate(getNextMonday()) + ' ")') ;
 
   await page.click('text=Hledat');
 
   //wait till connection cards are loaded
   await page.waitForSelector('ul > li > div');
-  // let list = await page.$$('ul > li > div >> text=Přímý');
-  // const list = await page.$$('ul > li > div * > h2');
 
   //list all connection cards
   const list = await page.$$('ul > li > div');
 
   const connections = [];
 
-  for (const element of list) {
-
-
+  for (const element of list) { //const is block scoped
+    
     //document.querySelectorAll('ul > li > div * > span[aria-label~="cesty"]')
     let departureArrival = (await (await element.$(' * > h2')).innerText()).split(' - ');
-    let travelTime = (await (await element.$(' * > h2 > span')).innerText()).split(' ');
-    let price = (await (await element.$(' * > button')).innerText()).split( );
+    let travelTime = (await (await element.$(' * > span')).innerText()).split(/(\s+)/);
+    let price = (await (await element.$(' * > button')).innerText()).split(/(\s+)/);
     let isDirect = (await element.innerText()).includes('Přímý');
 
-    let connection = new Connection(departureArrival[0], departureArrival[1], price[0], isDirect);
+    let connection = new Connection(departureArrival[0], departureArrival[1], travelTime[0], price[2], isDirect);
     
     connections.push(connection);    
   };
   
-  //let travelTimeArray = travelTime.split(' - ');
+  for (const connection of connections) {
+    let arrivalDateTime = getNextMonday().setHours(connection.arrivalTime.split(':')[0], connection.arrivalTime.split(':')[1], 0);
+    let departureDateTime = getNextMonday().setHours(connection.departureTime.split(':')[0], connection.departureTime.split(':')[1], 0);
+    
+    let calculateTravelTime = Math.abs(Math.round(((arrivalDateTime - departureDateTime)) / 1000) / 60);
+
+  }
+
   //let arrivalTime = travelTimeArray[1];
   //arrivalDateTime.setHours(arrivalTime.split(':')[0], arrivalTime.split(':')[1], 0);
   //let travelMinutes = Math.abs(Math.round((travelTime / 1000) / 60);
   //
 
-  console.log(connections);
+  //console.log(connections);
   
   let test = 'tst';
 
 });
 
 class Connection{
-  constructor(departure, arrival, price, isDirect){
-    this.departure = departure;
-    this.arrival = arrival;
+  constructor(departureTime, arrivalTime, travelTime, price, isDirect){
+    this.departureTime = departureTime;
+    this.arrivalTime = arrivalTime;
+    this.travelTime = travelTime;
     this.price = price;
     this.isDirect = isDirect;
   }
@@ -69,7 +74,7 @@ function getNextMonday(){
   return nextMonday;
 }
 
-function getNextMondayDate(nextMonday){
+function getNextMondayDayDate(nextMonday){
   var nextMondayDate = nextMonday;
   return nextMondayDate.getUTCDate();
 }
