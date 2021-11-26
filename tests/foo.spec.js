@@ -1,5 +1,6 @@
 //$env:PWDEBUG=1 
 const { test, expect } = require('@playwright/test');
+const { assertions } = require('expect');
 
 test('basic test', async ({ page }) => {
   await page.goto('https://novy.regiojet.cz/');
@@ -40,22 +41,15 @@ test('basic test', async ({ page }) => {
   };
   
   for (const connection of connections) {
-    let arrivalDateTime = getNextMonday().setHours(connection.arrivalTime.split(':')[0], connection.arrivalTime.split(':')[1], 0);
-    let departureDateTime = getNextMonday().setHours(connection.departureTime.split(':')[0], connection.departureTime.split(':')[1], 0);
+    let arrivalDateTime = getNextMonday().setHours(connection.arrivalTime.split(':')[0], 
+      connection.arrivalTime.split(':')[1], 0);
     
-    let calculateTravelTime = Math.abs(Math.round(((arrivalDateTime - departureDateTime)) / 1000) / 60);
+    let departureDateTime = getNextMonday().setHours(connection.departureTime.split(':')[0], 
+      connection.departureTime.split(':')[1], 0);
+
+    expect(calculateTravelTime(departureDateTime, arrivalDateTime)).toBe(connection.travelTime);
 
   }
-
-  //let arrivalTime = travelTimeArray[1];
-  //arrivalDateTime.setHours(arrivalTime.split(':')[0], arrivalTime.split(':')[1], 0);
-  //let travelMinutes = Math.abs(Math.round((travelTime / 1000) / 60);
-  //
-
-  //console.log(connections);
-  
-  let test = 'tst';
-
 });
 
 class Connection{
@@ -75,6 +69,18 @@ function getNextMonday(){
 }
 
 function getNextMondayDayDate(nextMonday){
+  //TODO: refactor, remove unnecessary variable
   var nextMondayDate = nextMonday;
   return nextMondayDate.getUTCDate();
+}
+
+function calculateTravelTime(departureTime, arrivalTime){
+  var travelTimeTotal = Math.abs(Math.round(((arrivalTime - departureTime)) / 1000) / 60);
+  var travelHours = Math.floor(travelTimeTotal/60) < 10 ? 
+    `0${Math.floor(travelTimeTotal/60).toString()}` : Math.floor(travelTimeTotal/60).toString();
+
+  var travelMinutes = (travelTimeTotal%60) < 10 ? 
+    `0${(travelTimeTotal%60).toString()}` : (travelTimeTotal%60).toString();
+  
+  return `${travelHours}:${travelMinutes}`;
 }
