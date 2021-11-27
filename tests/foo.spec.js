@@ -1,8 +1,9 @@
 //$env:PWDEBUG=1 
 const { test, expect } = require('@playwright/test');
-const { assertions } = require('expect');
+const {getNextMonday, getNextMondayDayDate, calculateTravelMinutes, calculateTravelTime} = require('../src/helpers/helper');
 
 test('basic test', async ({ page }) => {
+  //var Helper = new Helper();
   await page.goto('https://novy.regiojet.cz/');
 
   await page.click('button:has-text("Přijmout vše")');
@@ -28,18 +29,31 @@ test('basic test', async ({ page }) => {
   const connections = [];
 
   for (const element of list) { //const is block scoped
-    
     //document.querySelectorAll('ul > li > div * > span[aria-label~="cesty"]')
     let departureArrival = (await (await element.$(' * > h2')).innerText()).split(' - ');
-    let travelTime = (await (await element.$(' * > span')).innerText()).split(/(\s+)/);
-    let price = (await (await element.$(' * > button')).innerText()).split(/(\s+)/);
+    let travelTimeArray = (await (await element.$(' * > span')).innerText()).split(/(\s+)/);
+    let priceArray = (await (await element.$(' * > button')).innerText()).split(/(\s+)/);
+    let price = "NotInitialized"
+    //TODO: extract to function, rewrite as ternary
+    if (priceArray.length === 3){
+      price = priceArray[0];
+    } else {
+      price = priceArray[2];
+    }
     let isDirect = (await element.innerText()).includes('Přímý');
 
-    let connection = new Connection(departureArrival[0], departureArrival[1], travelTime[0], price[2], isDirect);
+    let connection = new Connection(departureArrival[0], departureArrival[1], travelTimeArray[0], price, isDirect);
     
     connections.push(connection);    
   };
+
+  console.log(connections.sort((a, b) =>
+    calculateTravelMinutes(a.travelTime) - calculateTravelMinutes(b.travelTime)));
   
+
+  //sort by price, ascending | does not need parseInt because we are deducting in sort
+  //console.log(connections.sort((a, b) => a.price - b.price));
+
   for (const connection of connections) {
     let arrivalDateTime = getNextMonday().setHours(connection.arrivalTime.split(':')[0], 
       connection.arrivalTime.split(':')[1], 0);
@@ -60,27 +74,4 @@ class Connection{
     this.price = price;
     this.isDirect = isDirect;
   }
-}
-
-function getNextMonday(){
-  var nextMonday = new Date();
-  nextMonday.setDate(nextMonday.getDate() + (((1 + 7 - nextMonday.getDay()) % 7) || 7));
-  return nextMonday;
-}
-
-function getNextMondayDayDate(nextMonday){
-  //TODO: refactor, remove unnecessary variable
-  var nextMondayDate = nextMonday;
-  return nextMondayDate.getUTCDate();
-}
-
-function calculateTravelTime(departureTime, arrivalTime){
-  var travelTimeTotal = Math.abs(Math.round(((arrivalTime - departureTime)) / 1000) / 60);
-  var travelHours = Math.floor(travelTimeTotal/60) < 10 ? 
-    `0${Math.floor(travelTimeTotal/60).toString()}` : Math.floor(travelTimeTotal/60).toString();
-
-  var travelMinutes = (travelTimeTotal%60) < 10 ? 
-    `0${(travelTimeTotal%60).toString()}` : (travelTimeTotal%60).toString();
-  
-  return `${travelHours}:${travelMinutes}`;
 }
